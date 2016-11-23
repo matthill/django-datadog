@@ -38,7 +38,8 @@ class DatadogMiddleware(object):
         # Calculate request time and submit to Datadog
         request_time = time.time() - getattr(request, self.DD_TIMING_ATTRIBUTE)
         tags = self._get_metric_tags(request)
-        dog_stats_api.histogram(self.timing_metric, request_time, tags=tags)
+        if tags is not None and len(tags) > 0:
+            dog_stats_api.histogram(self.timing_metric, request_time, tags=tags)
 
         return response
 
@@ -69,4 +70,12 @@ class DatadogMiddleware(object):
         dog_stats_api.increment(self.error_metric, tags=tags)
 
     def _get_metric_tags(self, request):
-        return ['path:{0}'.format(request.path)]
+
+        try:
+
+            if request.resolver_match.view_name is None:
+                return []
+
+            return ['view:{0}'.format(request.resolver_match.view_name)]
+        except:
+            return []
